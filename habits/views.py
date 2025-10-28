@@ -1,7 +1,7 @@
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.filters import SearchFilter , OrderingFilter
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 

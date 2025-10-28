@@ -1,13 +1,14 @@
 import os
+from datetime import datetime
 
 import requests
-from datetime import datetime
 from celery import shared_task
 from django.conf import settings
+
 from habits.models import Habit
 
-TELEGRAM_API_URL = os.getenv('TELEGRAM_URL')
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_API_URL = os.getenv("TELEGRAM_URL")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 
 @shared_task

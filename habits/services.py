@@ -1,13 +1,13 @@
 import json
 import os
 
-from django.contrib.auth import get_user_model
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
 import requests
-
+from django.contrib.auth import get_user_model
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 User = get_user_model()
+
 
 def send_message(chat_id, text):
     """Отправка сообщения через Telegram Bot API"""

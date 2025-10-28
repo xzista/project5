@@ -8,12 +8,8 @@ class User(AbstractUser):
     phone = models.CharField(
         max_length=35, verbose_name="Телефон", blank=True, null=True, help_text="Введите номер телефона"
     )
-    tg_nik = models.CharField(
-        max_length=50, verbose_name="TG", help_text="Укажите TG ник", blank=True, null=True
-    )
-    avatar = models.ImageField(
-        upload_to="users/avatars/", blank=True, null=True, help_text="Загрузите свой аватар"
-    )
+    tg_nik = models.CharField(max_length=50, verbose_name="TG", help_text="Укажите TG ник", blank=True, null=True)
+    avatar = models.ImageField(upload_to="users/avatars/", blank=True, null=True, help_text="Загрузите свой аватар")
     tg_chat_id = models.CharField(
         max_length=50, verbose_name="TG chat_id", help_text="Укажите TG chat_id", blank=True, null=True
     )
