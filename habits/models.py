@@ -22,6 +22,8 @@ class Habit(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        verbose_name = "Привычка"
+        verbose_name_plural = "Привычки"
         ordering = ['-created_at']
 
     def clean(self):
@@ -51,4 +53,4 @@ class Habit(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f'{self.action} at {self.time} ({self.owner})'
+        return f"{self.action} в {self.time} ({'приятная' if self.is_pleasant else 'полезная'})"
