@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "django_celery_beat",
     "users",
+    "habits",
 ]
 
 MIDDLEWARE = [
