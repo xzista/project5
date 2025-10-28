@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .apps import HabitsConfig
+from .services import telegram_webhook
 from .views import HabitViewSet
 
 
@@ -12,4 +13,5 @@ router.register(r'habits', HabitViewSet, basename='habit')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path("webhook/", telegram_webhook, name="telegram_webhook"),
 ]
