@@ -9,8 +9,8 @@ services:
     env_file:
       - .env
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - habit_tracker_static_volume:/app/staticfiles
+      - habit_tracker_media_volume:/app/media
     expose:
       - "8000"
     depends_on:
@@ -23,10 +23,10 @@ services:
       context: ./nginx
     container_name: habit_tracker_nginx
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - habit_tracker_static_volume:/app/staticfiles
+      - habit_tracker_media_volume:/app/media
     depends_on:
       - web
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - habit_tracker_postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
@@ -56,8 +56,8 @@ services:
     env_file:
       - .env
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - habit_tracker_static_volume:/app/staticfiles
+      - habit_tracker_media_volume:/app/media
     depends_on:
       - db
       - redis
@@ -70,14 +70,14 @@ services:
     env_file:
       - .env
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - habit_tracker_static_volume:/app/staticfiles
+      - habit_tracker_media_volume:/app/media
     depends_on:
       - db
       - redis
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
+  habit_tracker_postgres_data:
+  habit_tracker_static_volume:
+  habit_tracker_media_volume:
