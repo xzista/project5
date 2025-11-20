@@ -78,6 +78,10 @@ jobs:
             script: |
               set -e
               
+              echo "--- CREATE PROJECT DIRECTORY ---"
+              sudo mkdir -p /var/www
+              sudo chown $USER:$USER /var/www              
+              
               echo "--- CLEAN OLD PROJECT ---"
               sudo rm -rf /var/www/project5
               
@@ -109,18 +113,18 @@ jobs:
               EOF
               
               echo "--- CLEAN DOCKER ---"
-              docker system prune -af
+              sudo docker system prune -af --volumes
               
               echo "--- BUILD AND START CONTAINERS ---"
-              docker compose -f docker-compose.yaml down || true
-              docker compose -f docker-compose.yaml build --no-cache
-              docker compose -f docker-compose.yaml up -d
+              sudo docker compose -f docker-compose.yaml down || true
+              sudo docker compose -f docker-compose.yaml build --no-cache
+              sudo docker compose -f docker-compose.yaml up -d
               
               echo "--- APPLY MIGRATIONS ---"
               sleep 30
-              docker compose -f docker-compose.yaml exec -T web python manage.py migrate --noinput
+              sudo docker compose -f docker-compose.yaml exec -T web python manage.py migrate --noinput
               
               echo "--- COLLECT STATIC ---"
-              docker compose -f docker-compose.yaml exec -T web python manage.py collectstatic --noinput
+              sudo docker compose -f docker-compose.yaml exec -T web python manage.py collectstatic --noinput
               
               echo "--- DEPLOYMENT COMPLETE ---"
