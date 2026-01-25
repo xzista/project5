@@ -17,7 +17,6 @@
   - [Локальная установка](#локальная-установка)
   - [Docker-развертывание](#docker-развертывание)
   - [Настройка переменных окружения](#настройка-переменных-окружения)
-- [API Endpoints](#-api-endpoints)
 - [Интеграция с Telegram](#-интеграция-с-telegram)
 - [Валидация данных](#-валидация-данных)
 - [Тестирование](#-тестирование)
@@ -57,31 +56,20 @@
 
 ```python
 class Habit(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
-    place = models.CharField(max_length=255, verbose_name='Место выполнения')
-    time = models.TimeField(verbose_name='Время выполнения')
-    action = models.CharField(max_length=500, verbose_name='Действие')
-    is_pleasant = models.BooleanField(default=False, verbose_name='Приятная привычка')
-    related_habit = models.ForeignKey('self', on_delete=models.SET_NULL, 
-                                      null=True, blank=True, verbose_name='Связанная привычка')
-    frequency = models.PositiveIntegerField(default=1, verbose_name='Периодичность (в днях)')
-    reward = models.CharField(max_length=255, blank=True, verbose_name='Вознаграждение')
-    duration = models.PositiveIntegerField(validators=[MaxValueValidator(120)], 
-                                         verbose_name='Время на выполнение (секунды)')
-    is_public = models.BooleanField(default=False, verbose_name='Публичная привычка')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="habits")
+    place = models.CharField(max_length=255, blank=True)
+    time = models.TimeField()
+    action = models.CharField(max_length=255)
+    is_pleasant = models.BooleanField(default=False)
+    related_habit = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="linked_by"
+    )
+    period_days = models.PositiveSmallIntegerField(default=1)
+    reward_text = models.CharField(max_length=255, blank=True, null=True)
+    duration_seconds = models.PositiveSmallIntegerField(default=60)
+    is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-```
-
-### Модель для Telegram-интеграции
-
-```python
-class TelegramUser(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    telegram_id = models.CharField(max_length=100, unique=True)
-    chat_id = models.CharField(max_length=100)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 ```
 
 ## 🚀 Установка и запуск
@@ -90,7 +78,7 @@ class TelegramUser(models.Model):
 
 1. **Клонирование репозитория**
 ```bash
-git clone https://github.com/yourusername/habit-tracker.git
+git clone https://github.com/xzista/habit-tracker.git
 cd habit-tracker
 ```
 
@@ -199,60 +187,21 @@ docker-compose logs -f celery_worker
 Создайте файл `.env` в корневой директории:
 
 ```env
-# Django
-SECRET_KEY=django-insecure-your-secret-key-here
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
+SECRET_KEY=
 
-# База данных
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=habit_tracker
-DB_USER=habit_user
-DB_PASSWORD=your_secure_password
-DB_HOST=localhost
-DB_PORT=5432
+DEBUG=
 
-# Redis для Celery
-REDIS_URL=redis://localhost:6379/0
+POSTGRES_DB=
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_HOST=
+POSTGRES_PORT=
 
-# Telegram
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+ALLOWED_HOSTS=
 
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-
-# Время жизни токена (опционально)
-ACCESS_TOKEN_LIFETIME=86400
-REFRESH_TOKEN_LIFETIME=604800
+TELEGRAM_URL=
+TELEGRAM_TOKEN=
 ```
-
-## 📡 API Endpoints
-
-### Аутентификация
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| POST | `/api/auth/register/` | Регистрация нового пользователя |
-| POST | `/api/auth/login/` | Авторизация (получение токена) |
-| POST | `/api/auth/refresh/` | Обновление access токена |
-| POST | `/api/auth/logout/` | Выход (аннулирование токена) |
-
-### Привычки
-| Метод | Endpoint | Описание | Аутентификация |
-|-------|----------|----------|----------------|
-| GET | `/api/habits/` | Список привычек пользователя | ✅ |
-| POST | `/api/habits/` | Создание новой привычки | ✅ |
-| GET | `/api/habits/{id}/` | Детали привычки | ✅ |
-| PUT | `/api/habits/{id}/` | Обновление привычки | ✅ |
-| PATCH | `/api/habits/{id}/` | Частичное обновление | ✅ |
-| DELETE | `/api/habits/{id}/` | Удаление привычки | ✅ |
-| GET | `/api/habits/public/` | Список публичных привычек | ❌ |
-
-### Telegram
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| POST | `/api/telegram/connect/` | Подключение Telegram аккаунта |
-| POST | `/api/telegram/disconnect/` | Отключение Telegram |
-| GET | `/api/telegram/status/` | Статус подключения |
 
 ## 🤖 Интеграция с Telegram
 
@@ -269,98 +218,54 @@ REFRESH_TOKEN_LIFETIME=604800
    - Бот автоматически сохраняет chat_id в базу данных
    - Система начинает отправлять уведомления
 
-### Пример уведомления
-
-```python
-# celery/tasks.py
-from celery import shared_task
-from datetime import datetime
-import requests
-
-@shared_task
-def send_habit_reminders():
-    habits = Habit.objects.filter(time__hour=datetime.now().hour,
-                                  time__minute=datetime.now().minute)
-    
-    for habit in habits:
-        if habit.user.telegram_user.exists():
-            telegram_user = habit.user.telegram_user.first()
-            message = f"⏰ Напоминание о привычке!\n\n" \
-                     f"Действие: {habit.action}\n" \
-                     f"Время: {habit.time.strftime('%H:%M')}\n" \
-                     f"Место: {habit.place}\n" \
-                     f"Длительность: {habit.duration} секунд"
-            
-            requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-                json={
-                    "chat_id": telegram_user.chat_id,
-                    "text": message,
-                    "parse_mode": "HTML"
-                }
-            )
-```
 
 ## ✅ Валидация данных
 
 Система включает следующие валидаторы:
 
-### 1. Валидаторы моделей
-```python
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
-
-def validate_habit_creation(habit):
-    """Основная валидация создания привычки"""
-    errors = []
-    
-    # Правило 1: Заполнено только одно из полей
-    if habit.reward and habit.related_habit:
-        errors.append(_("Нельзя указывать одновременно и вознаграждение, и связанную привычку"))
-    
-    # Правило 2: Время выполнения <= 120 секунд
-    if habit.duration > 120:
-        errors.append(_("Время выполнения не может превышать 120 секунд"))
-    
-    # Правило 3: Связанная привычка должна быть приятной
-    if habit.related_habit and not habit.related_habit.is_pleasant:
-        errors.append(_("Связанная привычка должна быть приятной"))
-    
-    # Правило 4: У приятной привычки нет вознаграждения или связанной привычки
-    if habit.is_pleasant and (habit.reward or habit.related_habit):
-        errors.append(_("У приятной привычки не может быть вознаграждения или связанной привычки"))
-    
-    # Правило 5: Периодичность 1-7 дней
-    if habit.frequency < 1 or habit.frequency > 7:
-        errors.append(_("Периодичность должна быть от 1 до 7 дней"))
-    
-    if errors:
-        raise ValidationError(errors)
-```
-
-### 2. Сериализаторы с валидацией
+### Сериализаторы с валидацией
 ```python
 from rest_framework import serializers
 
-class HabitSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Habit
-        fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'updated_at')
-    
-    def validate(self, data):
-        # Проверка всех бизнес-правил
-        if data.get('reward') and data.get('related_habit'):
-            raise serializers.ValidationError(
-                "Можно указать только одно: вознаграждение ИЛИ связанную привычку"
-            )
-        
-        if data.get('duration', 0) > 120:
-            raise serializers.ValidationError(
-                "Время выполнения не может превышать 120 секунд"
-            )
-        
-        return data
+
+def validate_mutual_exclusion(reward_text, related_habit):
+    """
+    Нельзя одновременно указывать вознаграждение и связанную привычку.
+    """
+    if reward_text and related_habit:
+        raise serializers.ValidationError("Нельзя одновременно указывать вознаграждение и связанную привычку.")
+
+
+def validate_duration(duration_seconds):
+    """
+    Время выполнения не должно превышать 120 секунд.
+    """
+    if duration_seconds and duration_seconds > 120:
+        raise serializers.ValidationError("Время выполнения не должно превышать 120 секунд (2 минуты).")
+
+
+def validate_periodicity(period_days):
+    """
+    Периодичность выполнения — от 1 до 7 дней.
+    """
+    if period_days and not (1 <= period_days <= 7):
+        raise serializers.ValidationError("Периодичность выполнения должна быть от 1 до 7 дней.")
+
+
+def validate_related_habit(related_habit):
+    """
+    Связанная привычка должна быть приятной.
+    """
+    if related_habit and not related_habit.is_pleasant:
+        raise serializers.ValidationError("Связанная привычка должна быть помечена как приятная (is_pleasant=True).")
+
+
+def validate_pleasant_habit(is_pleasant, reward_text, related_habit):
+    """
+    У приятной привычки не может быть вознаграждения или связанной привычки.
+    """
+    if is_pleasant and (reward_text or related_habit):
+        raise serializers.ValidationError("У приятной привычки не может быть вознаграждения или связанной привычки.")
 ```
 
 ## 🧪 Тестирование
@@ -381,110 +286,29 @@ coverage html  # для HTML отчета
 
 ## 🌐 Деплоймент
 
-### Подготовка к продакшену
-
-1. **Настройка production окружения**
-```python
-# config/settings/production.py
-from .base import *
-
-DEBUG = False
-
-ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
-}
-
-# Настройки безопасности
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-```
-
-2. **Docker Compose для продакшена**
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - .env.prod
-    restart: always
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    restart: always
-
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
-    volumes:
-      - static_volume:/app/staticfiles
-    env_file:
-      - .env.prod
-    depends_on:
-      - postgres
-      - redis
-    restart: always
-
-  celery_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    command: celery -A config worker --loglevel=info
-    env_file:
-      - .env.prod
-    depends_on:
-      - redis
-      - postgres
-    restart: always
-
-  celery_beat:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    command: celery -A config beat --loglevel=info
-    env_file:
-      - .env.prod
-    depends_on:
-      - redis
-      - postgres
-    restart: always
-
-  nginx:
-    image: nginx:1.25-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - static_volume:/app/staticfiles
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      - web
-    restart: always
-
-volumes:
-  postgres_data:
-  redis_data:
-  static_volume:
-```
+1. Подготовка сервера
+   - Установить зависимости:
+   ```
+   sudo apt update
+   sudo apt install -y docker docker-compose git
+   ```
+   - Клонировать проект:
+   ```
+   cd /opt
+   sudo git clone https://github.com/xzista/habit-tracker.git habit-tracker
+   cd habit-tracker
+   ```
+   - Создать .env на основе шаблона:
+   ```
+   cp .env.sample .env
+   ```
+   - Запустить проект:
+   ```
+   docker-compose -f docker-compose.prod.yaml up -d --build
+   ```
+2. GitHub Actions Workflow
+    - Файл workflow находится по пути:
+   ```
+   .github/workflows/ci.yml
+   ```
+   - Деплой запускается автоматически при push в ветку main.
