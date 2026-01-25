@@ -1,4 +1,4 @@
-# Habit Tracker - Система управления привычками
+# Habit Tracker - Трекер полезных привычек
 
 ![Django](https://img.shields.io/badge/Django-4.2-green)
 ![DRF](https://img.shields.io/badge/DRF-3.14-blue)
@@ -312,3 +312,4 @@ coverage html  # для HTML отчета
    .github/workflows/ci.yml
    ```
    - Деплой запускается автоматически при push в ветку main.
+
